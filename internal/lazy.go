@@ -113,8 +113,11 @@ func GetNmonReport(filePath string, name string) {
 			hasMem = true
 			continue
 		}
-		if !hasNet && strings.HasPrefix(strLine, "NET,Network I/O") {
+		// 总是刷新网卡状态, 适合网卡频繁增删情况
+		if strings.HasPrefix(strLine, "NET,Network I/O") {
 			hasNet = true
+			indexNetRead = []int{}
+			indexNetWrite = []int{}
 			// 或许存在多个网络适配器
 			for i, columnName := range arr {
 				if strings.HasSuffix(columnName, "-read-KB/s") {
@@ -183,6 +186,11 @@ func GetNmonReport(filePath string, name string) {
 			continue
 		}
 		if hasNet && strings.HasPrefix(strLine, "NET,") {
+			// 测试网卡是否改变
+			if len(arr)-1 < indexNetRead[len(indexNetRead)-1] || len(arr)-1 < indexNetWrite[len(indexNetWrite)-1] {
+				hasNet = false
+				continue
+			}
 			sliceNetReadTotal = append(sliceNetReadTotal, SumOfSpecifiedColumns(strLine, indexNetRead))
 			sliceNetWriteTotal = append(sliceNetWriteTotal, SumOfSpecifiedColumns(strLine, indexNetWrite)*-1)
 			continue
